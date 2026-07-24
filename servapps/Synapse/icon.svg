@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Synapse</title>
+  <desc id="desc">A connected-node chat service glyph</desc>
+  <rect width="512" height="512" rx="96" fill="#111827"/>
+  <rect x="82" y="82" width="348" height="348" rx="72" fill="none" stroke="#eceff4" stroke-width="22"/>
+  <path d="M150 170 362 150 372 356 154 370Z" fill="none" stroke="#70c4ff" stroke-width="13"/>
+  <g fill="#eceff4">
+    <circle cx="150" cy="170" r="24"/>
+    <circle cx="362" cy="150" r="24"/>
+    <circle cx="372" cy="356" r="24"/>
+    <circle cx="154" cy="370" r="24"/>
+  </g>
+  <text x="256" y="321" text-anchor="middle" font-family="system-ui, sans-serif" font-size="180" font-weight="700" fill="#70c4ff">S</text>
+</svg>
