@@ -1,0 +1,23 @@
+{
+  "name": "Synapse",
+  "longDescription": "<p>Synapse is a production Matrix homeserver for private, secure, federated communication. This Cosmos package closes the difficult parts of a first installation: PostgreSQL, persistent cryptographic identity, reverse-proxy-aware listeners, federation over HTTPS, Matrix client and server discovery, and an initial administrator account.</p><p>The selected Cosmos hostname becomes the permanent Matrix server name. The package refuses to start if an update attempts to change that identity while retaining the existing data. Public registration and guest access are disabled by default.</p><p>This package does not include a TURN server. A separate Coturn deployment is recommended for reliable voice and video calling.</p>",
+  "description": "A production Matrix Synapse homeserver with PostgreSQL, Cosmos-managed HTTPS routing and federation, immutable server identity protection, and automatic administrator bootstrap.",
+  "tags": [
+    "matrix",
+    "synapse",
+    "chat",
+    "messaging",
+    "federation",
+    "communication",
+    "postgresql",
+    "self-hosted",
+    "privacy",
+    "collaboration"
+  ],
+  "repository": "https://github.com/element-hq/synapse",
+  "image": "https://hub.docker.com/r/matrixdotorg/synapse",
+  "supported_architectures": [
+    "amd64",
+    "arm64"
+  ]
+}
