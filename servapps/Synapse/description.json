@@ -1,0 +1,17 @@
+{
+  "name": "Synapse",
+  "description": "A production-oriented Matrix homeserver with PostgreSQL, deterministic first-run configuration, federation, and an initial administrator.",
+  "longDescription": "Synapse is the reference Matrix homeserver. This Cosmos package treats the selected public hostname as the permanent Matrix server_name, generates and retains the signing and application secrets, provisions PostgreSQL, configures proxy-aware client and federation listeners, serves Matrix well-known discovery, and creates the initial administrator. The hostname is part of every user and room identifier and must never be changed after first installation. Back up the Synapse data volume and PostgreSQL volume together. Voice and video calling require a separately configured TURN service.",
+  "tags": [
+    "communication",
+    "chat",
+    "matrix",
+    "federation"
+  ],
+  "repository": "https://github.com/element-hq/synapse",
+  "image": "matrixdotorg/synapse:v1.156.0",
+  "supported_architectures": [
+    "amd64",
+    "arm64"
+  ]
+}
