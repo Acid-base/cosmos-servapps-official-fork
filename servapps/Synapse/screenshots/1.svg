@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Synapse on Cosmos architecture</title>
+  <desc id="desc">Cosmos HTTPS routes to Synapse, which uses a private PostgreSQL database.</desc>
+  <rect width="1280" height="720" fill="#11151d"/>
+  <style>
+    .title{font:700 54px system-ui,sans-serif;fill:#f5f7fa}.sub{font:22px system-ui,sans-serif;fill:#9baabe}
+    .head{font:700 28px system-ui,sans-serif;fill:#f5f7fa}.body{font:22px system-ui,sans-serif;fill:#becada}
+    .box{fill:#1f2632;stroke:#52c7ff;stroke-width:3}.line{stroke:#52c7ff;stroke-width:7;fill:none}
+  </style>
+  <text x="70" y="100" class="title">Synapse on Cosmos</text>
+  <text x="72" y="142" class="sub">A complete Matrix installation graph</text>
+  <rect x="75" y="235" width="260" height="215" rx="24" class="box"/>
+  <rect x="510" y="205" width="260" height="275" rx="24" class="box"/>
+  <rect x="945" y="235" width="260" height="215" rx="24" class="box"/>
+  <text x="100" y="289" class="head">Cosmos HTTPS</text>
+  <text x="535" y="259" class="head">Synapse</text>
+  <text x="970" y="289" class="head">PostgreSQL</text>
+  <g class="body">
+    <text x="125" y="344">Public client API</text><text x="125" y="387">Federation on :443</text><text x="125" y="430">No host ports</text>
+    <text x="560" y="314">Immutable server name</text><text x="560" y="357">Generated signing keys</text><text x="560" y="400">Admin bootstrap</text>
+    <text x="995" y="344">Private network</text><text x="995" y="387">Persistent data</text><text x="995" y="430">Health checked</text>
+  </g>
+  <g fill="#52c7ff">
+    <circle cx="107" cy="336" r="6"/><circle cx="107" cy="379" r="6"/><circle cx="107" cy="422" r="6"/>
+    <circle cx="542" cy="306" r="6"/><circle cx="542" cy="349" r="6"/><circle cx="542" cy="392" r="6"/>
+    <circle cx="977" cy="336" r="6"/><circle cx="977" cy="379" r="6"/><circle cx="977" cy="422" r="6"/>
+  </g>
+  <path d="M355 342h135" class="line"/><path d="m490 342-22-14v28Z" fill="#52c7ff"/>
+  <path d="M790 342h135" class="line"/><path d="m925 342-22-14v28Z" fill="#52c7ff"/>
+  <text x="70" y="650" class="sub">Persistent identity • private database • direct Cosmos routing • no manual YAML</text>
+</svg>
