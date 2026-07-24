@@ -27,7 +27,10 @@ for (const file of servapps) {
     }
   }
 
-  servapp.icon = `https://azukaar.github.io/cosmos-servapps-official/servapps/${file}/icon.png`
+  const iconFile = ['png', 'svg', 'webp', 'jpg', 'jpeg']
+    .map(extension => `icon.${extension}`)
+    .find(icon => fs.existsSync(`./servapps/${file}/${icon}`)) || 'icon.png'
+  servapp.icon = `https://azukaar.github.io/cosmos-servapps-official/servapps/${file}/${iconFile}`
   //Common Format,used by most
   const YMLComposeSource =  `https://azukaar.github.io/cosmos-servapps-official/servapps/${file}/docker-compose.yml`;
   if(fs.existsSync(`./servapps/${file}/docker-compose.yml`)) {
@@ -57,7 +60,7 @@ fs.writeFileSync('./index.json', JSON.stringify(apps, null, 2))
 
 for (const servapp of servappsJSON) {
   servapp.compose = `http://localhost:3000/servapps/${servapp.id}/cosmos-compose.json`
-  servapp.icon = `http://localhost:3000/servapps/${servapp.id}/icon.png`
+  servapp.icon = servapp.icon.replace('https://azukaar.github.io/cosmos-servapps-official', 'http://localhost:3000')
   for (let i = 0; i < servapp.screenshots.length; i++) {
     servapp.screenshots[i] = servapp.screenshots[i].replace('https://azukaar.github.io/cosmos-servapps-official', 'http://localhost:3000')
   }
