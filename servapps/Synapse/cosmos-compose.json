@@ -1,0 +1,226 @@
+{
+  "cosmos-installer": {
+    "skip-default-network": true,
+    "frozen-volumes": [
+      "{ServiceName}-data",
+      "{ServiceName}-postgres-data"
+    ],
+    "form": [
+      {
+        "type": "info",
+        "label": "The hostname selected for the Synapse route becomes the permanent Matrix server name. Matrix user IDs and room aliases retain this identity for the lifetime of the database."
+      },
+      {
+        "name": "adminUser",
+        "label": "Initial Matrix administrator username",
+        "initialValue": "admin",
+        "type": "text"
+      },
+      {
+        "name": "adminPassword",
+        "label": "Initial Matrix administrator password (required)",
+        "initialValue": "",
+        "type": "password"
+      },
+      {
+        "name": "reportStats",
+        "label": "Send anonymous usage statistics to the Synapse project?",
+        "initialValue": "no",
+        "type": "select",
+        "options": [
+          [
+            "No",
+            "no"
+          ],
+          [
+            "Yes",
+            "yes"
+          ]
+        ]
+      },
+      {
+        "name": "maxUploadSize",
+        "label": "Maximum media upload size",
+        "initialValue": "100M",
+        "type": "text"
+      }
+    ],
+    "post-install": [
+      {
+        "type": "success",
+        "label": "Synapse, PostgreSQL, federation on HTTPS port 443, client discovery, and the initial administrator are configured automatically. The administrator bootstrap container exits after succeeding; this is expected."
+      },
+      {
+        "type": "warning",
+        "label": "TURN is not included. Messaging and federation work without it, but reliable voice and video calls require a separately deployed Coturn service."
+      },
+      {
+        "type": "info",
+        "label": "Back up both the PostgreSQL database and the Synapse data volume. Copying only one of them is not a complete Matrix backup."
+      }
+    ]
+  },
+  "minVersion": "0.22.29",
+  "services": {
+    "{ServiceName}-postgres": {
+      "image": "postgres:17.10-alpine3.23",
+      "container_name": "{ServiceName}-postgres",
+      "hostname": "{ServiceName}-postgres",
+      "restart": "unless-stopped",
+      "stop_grace_period": 30,
+      "environment": [
+        "POSTGRES_DB=synapse",
+        "POSTGRES_USER=synapse",
+        "POSTGRES_PASSWORD={Passwords.0}",
+        "POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "pg_isready -U synapse -d synapse"
+        ],
+        "interval": 5,
+        "timeout": 5,
+        "retries": 30,
+        "start_period": 10
+      },
+      "volumes": [
+        {
+          "source": "{ServiceName}-postgres-data",
+          "target": "/var/lib/postgresql/data",
+          "type": "volume"
+        }
+      ],
+      "networks": {
+        "{ServiceName}-database": {}
+      },
+      "labels": {
+        "cosmos-persistent-env": "POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_INITDB_ARGS",
+        "cosmos-auto-update": "true",
+        "cosmos-icon": "https://azukaar.github.io/cosmos-servapps-official/servapps/Synapse/icon.svg",
+        "cosmos-stack": "{ServiceName}",
+        "cosmos-stack-main": "{ServiceName}"
+      }
+    },
+    "{ServiceName}": {
+      "image": "matrixdotorg/synapse:v1.157.0",
+      "container_name": "{ServiceName}",
+      "hostname": "{ServiceName}",
+      "restart": "unless-stopped",
+      "stop_grace_period": 60,
+      "entrypoint": "/bin/sh -c",
+      "command": "printf${IFS}%s${IFS}IyEvYmluL3NoCnNldCAtZXUKCkNPTkZJRz0vZGF0YS9ob21lc2VydmVyLnlhbWwKSURFTlRJVFk9L2RhdGEvLmNvc21vcy1zeW5hcHNlLXNlcnZlci1uYW1lClNUQVJUX1BZPSR7U1lOQVBTRV9TVEFSVDotL3N0YXJ0LnB5fQoKWyAtbiAiJHtTWU5BUFNFX1NFUlZFUl9OQU1FOi19IiBdIHx8IHsgZWNobyAiU1lOQVBTRV9TRVJWRVJfTkFNRSBpcyByZXF1aXJlZCIgPiYyOyBleGl0IDY0OyB9ClsgLW4gIiR7UE9TVEdSRVNfUEFTU1dPUkQ6LX0iIF0gfHwgeyBlY2hvICJQT1NUR1JFU19QQVNTV09SRCBpcyByZXF1aXJlZCIgPiYyOyBleGl0IDY0OyB9CgpweXRob24zIC0gPDwnUFlXQUlUJwppbXBvcnQgb3MsIHNvY2tldCwgc3lzLCB0aW1lCmhvc3QgPSBvcy5lbnZpcm9uWydQT1NUR1JFU19IT1NUJ10KcG9ydCA9IGludChvcy5lbnZpcm9uLmdldCgnUE9TVEdSRVNfUE9SVCcsICc1NDMyJykpCmZvciBhdHRlbXB0IGluIHJhbmdlKDE4MCk6CiAgICB0cnk6CiAgICAgICAgd2l0aCBzb2NrZXQuY3JlYXRlX2Nvbm5lY3Rpb24oKGhvc3QsIHBvcnQpLCB0aW1lb3V0PTIpOgogICAgICAgICAgICBzeXMuZXhpdCgwKQogICAgZXhjZXB0IE9TRXJyb3I6CiAgICAgICAgdGltZS5zbGVlcCgxKQpyYWlzZSBTeXN0ZW1FeGl0KGYnUG9zdGdyZVNRTCBkaWQgbm90IGJlY29tZSByZWFjaGFibGUgYXQge2hvc3R9Ontwb3J0fScpClBZV0FJVAoKaWYgWyAhIC1zICIkQ09ORklHIiBdOyB0aGVuCiAgICAiJFNUQVJUX1BZIiBtaWdyYXRlX2NvbmZpZwpmaQoKcHl0aG9uMyAtIDw8J1BZUEFUQ0gnCmltcG9ydCBvcwppbXBvcnQgcGF0aGxpYgppbXBvcnQgdGVtcGZpbGUKaW1wb3J0IHlhbWwKCmNvbmZpZ19wYXRoID0gcGF0aGxpYi5QYXRoKCcvZGF0YS9ob21lc2VydmVyLnlhbWwnKQppZGVudGl0eV9wYXRoID0gcGF0aGxpYi5QYXRoKCcvZGF0YS8uY29zbW9zLXN5bmFwc2Utc2VydmVyLW5hbWUnKQpzZXJ2ZXJfbmFtZSA9IG9zLmVudmlyb25bJ1NZTkFQU0VfU0VSVkVSX05BTUUnXS5zdHJpcCgpCnB1YmxpY19iYXNldXJsID0gb3MuZW52aXJvblsnU1lOQVBTRV9QVUJMSUNfQkFTRVVSTCddLnN0cmlwKCkKdWlkID0gaW50KG9zLmVudmlyb24uZ2V0KCdVSUQnLCAnOTkxJykpCmdpZCA9IGludChvcy5lbnZpcm9uLmdldCgnR0lEJywgJzk5MScpKQoKaWYgbm90IHNlcnZlcl9uYW1lIG9yIGFueShjLmlzc3BhY2UoKSBmb3IgYyBpbiBzZXJ2ZXJfbmFtZSk6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCdJbnZhbGlkIGVtcHR5IG9yIHdoaXRlc3BhY2UtYmVhcmluZyBNYXRyaXggc2VydmVyIG5hbWUnKQppZiBub3QgcHVibGljX2Jhc2V1cmwuc3RhcnRzd2l0aCgnaHR0cHM6Ly8nKSBvciBub3QgcHVibGljX2Jhc2V1cmwuZW5kc3dpdGgoJy8nKToKICAgIHJhaXNlIFN5c3RlbUV4aXQoJ1NZTkFQU0VfUFVCTElDX0JBU0VVUkwgbXVzdCBiZSBhbiBodHRwcyBVUkwgZW5kaW5nIGluIC8nKQoKaWYgaWRlbnRpdHlfcGF0aC5leGlzdHMoKToKICAgIHJlY29yZGVkID0gaWRlbnRpdHlfcGF0aC5yZWFkX3RleHQoZW5jb2Rpbmc9J3V0Zi04Jykuc3RyaXAoKQogICAgaWYgcmVjb3JkZWQgIT0gc2VydmVyX25hbWU6CiAgICAgICAgcmFpc2UgU3lzdGVtRXhpdCgKICAgICAgICAgICAgZidJbW11dGFibGUgTWF0cml4IGlkZW50aXR5IHJlZnVzYWw6IHBlcnNpc3RlZCBzZXJ2ZXJfbmFtZT17cmVjb3JkZWQhcn0sIHJlcXVlc3RlZD17c2VydmVyX25hbWUhcn0nCiAgICAgICAgKQoKd2l0aCBjb25maWdfcGF0aC5vcGVuKCdyJywgZW5jb2Rpbmc9J3V0Zi04JykgYXMgaGFuZGxlOgogICAgY29uZmlnID0geWFtbC5zYWZlX2xvYWQoaGFuZGxlKSBvciB7fQoKY29uZmlndXJlZCA9IHN0cihjb25maWcuZ2V0KCdzZXJ2ZXJfbmFtZScsICcnKSkuc3RyaXAoKQppZiBjb25maWd1cmVkIGFuZCBjb25maWd1cmVkICE9IHNlcnZlcl9uYW1lOgogICAgcmFpc2UgU3lzdGVtRXhpdCgKICAgICAgICBmJ0ltbXV0YWJsZSBNYXRyaXggaWRlbnRpdHkgcmVmdXNhbDogaG9tZXNlcnZlci55YW1sIHNlcnZlcl9uYW1lPXtjb25maWd1cmVkIXJ9LCByZXF1ZXN0ZWQ9e3NlcnZlcl9uYW1lIXJ9JwogICAgKQoKY29uZmlnWydzZXJ2ZXJfbmFtZSddID0gc2VydmVyX25hbWUKY29uZmlnWydwdWJsaWNfYmFzZXVybCddID0gcHVibGljX2Jhc2V1cmwKY29uZmlnWydzZXJ2ZV9zZXJ2ZXJfd2VsbGtub3duJ10gPSBUcnVlCmNvbmZpZ1snZW5hYmxlX3JlZ2lzdHJhdGlvbiddID0gRmFsc2UKY29uZmlnWydhbGxvd19ndWVzdF9hY2Nlc3MnXSA9IEZhbHNlCmNvbmZpZ1snbWF4X3VwbG9hZF9zaXplJ10gPSBvcy5lbnZpcm9uLmdldCgnU1lOQVBTRV9NQVhfVVBMT0FEX1NJWkUnLCAnMTAwTScpCmNvbmZpZ1snc3VwcHJlc3Nfa2V5X3NlcnZlcl93YXJuaW5nJ10gPSBUcnVlCgpjb25maWdbJ2RhdGFiYXNlJ10gPSB7CiAgICAnbmFtZSc6ICdwc3ljb3BnMicsCiAgICAnYXJncyc6IHsKICAgICAgICAndXNlcic6IG9zLmVudmlyb24uZ2V0KCdQT1NUR1JFU19VU0VSJywgJ3N5bmFwc2UnKSwKICAgICAgICAncGFzc3dvcmQnOiBvcy5lbnZpcm9uWydQT1NUR1JFU19QQVNTV09SRCddLAogICAgICAgICdkYXRhYmFzZSc6IG9zLmVudmlyb24uZ2V0KCdQT1NUR1JFU19EQicsICdzeW5hcHNlJyksCiAgICAgICAgJ2hvc3QnOiBvcy5lbnZpcm9uWydQT1NUR1JFU19IT1NUJ10sCiAgICAgICAgJ3BvcnQnOiBpbnQob3MuZW52aXJvbi5nZXQoJ1BPU1RHUkVTX1BPUlQnLCAnNTQzMicpKSwKICAgICAgICAnY3BfbWluJzogNSwKICAgICAgICAnY3BfbWF4JzogMTAsCiAgICB9LAp9Cgpjb25maWdbJ3JlZ2lzdHJhdGlvbl9zaGFyZWRfc2VjcmV0J10gPSBvcy5lbnZpcm9uWydTWU5BUFNFX1JFR0lTVFJBVElPTl9TSEFSRURfU0VDUkVUJ10KY29uZmlnWydtYWNhcm9vbl9zZWNyZXRfa2V5J10gPSBvcy5lbnZpcm9uWydTWU5BUFNFX01BQ0FST09OX1NFQ1JFVF9LRVknXQpjb25maWdbJ2xpc3RlbmVycyddID0gWwogICAgewogICAgICAgICdwb3J0JzogODAwOCwKICAgICAgICAndGxzJzogRmFsc2UsCiAgICAgICAgJ2JpbmRfYWRkcmVzc2VzJzogWycwLjAuMC4wJ10sCiAgICAgICAgJ3R5cGUnOiAnaHR0cCcsCiAgICAgICAgJ3hfZm9yd2FyZGVkJzogVHJ1ZSwKICAgICAgICAncmVzb3VyY2VzJzogWwogICAgICAgICAgICB7J25hbWVzJzogWydjbGllbnQnXSwgJ2NvbXByZXNzJzogVHJ1ZX0sCiAgICAgICAgICAgIHsnbmFtZXMnOiBbJ2ZlZGVyYXRpb24nXSwgJ2NvbXByZXNzJzogRmFsc2V9LAogICAgICAgIF0sCiAgICB9Cl0KCmZkLCB0ZW1wX25hbWUgPSB0ZW1wZmlsZS5ta3N0ZW1wKHByZWZpeD0nLmhvbWVzZXJ2ZXIuJywgc3VmZml4PScueWFtbCcsIGRpcj1zdHIoY29uZmlnX3BhdGgucGFyZW50KSkKdHJ5OgogICAgd2l0aCBvcy5mZG9wZW4oZmQsICd3JywgZW5jb2Rpbmc9J3V0Zi04JykgYXMgaGFuZGxlOgogICAgICAgIHlhbWwuc2FmZV9kdW1wKGNvbmZpZywgaGFuZGxlLCBzb3J0X2tleXM9RmFsc2UsIGRlZmF1bHRfZmxvd19zdHlsZT1GYWxzZSkKICAgICAgICBoYW5kbGUuZmx1c2goKQogICAgICAgIG9zLmZzeW5jKGhhbmRsZS5maWxlbm8oKSkKICAgIG9zLmNobW9kKHRlbXBfbmFtZSwgMG82NDApCiAgICB0cnk6CiAgICAgICAgb3MuY2hvd24odGVtcF9uYW1lLCB1aWQsIGdpZCkKICAgIGV4Y2VwdCBQZXJtaXNzaW9uRXJyb3I6CiAgICAgICAgcGFzcwogICAgb3MucmVwbGFjZSh0ZW1wX25hbWUsIGNvbmZpZ19wYXRoKQpmaW5hbGx5OgogICAgaWYgb3MucGF0aC5leGlzdHModGVtcF9uYW1lKToKICAgICAgICBvcy51bmxpbmsodGVtcF9uYW1lKQoKaWRlbnRpdHlfcGF0aC53cml0ZV90ZXh0KHNlcnZlcl9uYW1lICsgJ1xuJywgZW5jb2Rpbmc9J3V0Zi04JykKb3MuY2htb2QoaWRlbnRpdHlfcGF0aCwgMG82NDApCnRyeToKICAgIG9zLmNob3duKGlkZW50aXR5X3BhdGgsIHVpZCwgZ2lkKQpleGNlcHQgUGVybWlzc2lvbkVycm9yOgogICAgcGFzcwpQWVBBVENICgpleGVjICIkU1RBUlRfUFkiIHJ1bgo=|base64${IFS}-d|/bin/sh",
+      "depends_on": {
+        "{ServiceName}-postgres": {
+          "condition": "service_started"
+        }
+      },
+      "environment": [
+        "TZ=auto",
+        "UID=991",
+        "GID=991",
+        "SYNAPSE_SERVER_NAME={Hostnames.{StaticServiceName}.{StaticServiceName}.host}",
+        "SYNAPSE_PUBLIC_BASEURL=https://{Hostnames.{StaticServiceName}.{StaticServiceName}.host}/",
+        "SYNAPSE_REPORT_STATS={Context.reportStats}",
+        "SYNAPSE_NO_TLS=yes",
+        "SYNAPSE_HTTP_PORT=8008",
+        "SYNAPSE_MAX_UPLOAD_SIZE={Context.maxUploadSize}",
+        "SYNAPSE_REGISTRATION_SHARED_SECRET={Passwords.1}",
+        "SYNAPSE_MACAROON_SECRET_KEY={Passwords.2}",
+        "POSTGRES_HOST={ServiceName}-postgres",
+        "POSTGRES_PORT=5432",
+        "POSTGRES_DB=synapse",
+        "POSTGRES_USER=synapse",
+        "POSTGRES_PASSWORD={Passwords.0}"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "curl",
+          "-fSs",
+          "http://localhost:8008/health"
+        ],
+        "interval": 15,
+        "timeout": 5,
+        "retries": 20,
+        "start_period": 60
+      },
+      "volumes": [
+        {
+          "source": "{ServiceName}-data",
+          "target": "/data",
+          "type": "volume"
+        }
+      ],
+      "networks": {
+        "{ServiceName}-database": {}
+      },
+      "labels": {
+        "cosmos-network-name": "AUTO",
+        "cosmos-persistent-env": "SYNAPSE_SERVER_NAME, SYNAPSE_PUBLIC_BASEURL, SYNAPSE_REPORT_STATS, SYNAPSE_MAX_UPLOAD_SIZE, SYNAPSE_REGISTRATION_SHARED_SECRET, SYNAPSE_MACAROON_SECRET_KEY, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD",
+        "cosmos-auto-update": "true",
+        "cosmos-icon": "https://azukaar.github.io/cosmos-servapps-official/servapps/Synapse/icon.svg",
+        "cosmos-stack": "{ServiceName}",
+        "cosmos-stack-main": "{ServiceName}"
+      },
+      "routes": [
+        {
+          "name": "{ServiceName}",
+          "description": "Matrix client and federation endpoint",
+          "useHost": true,
+          "target": "http://{ServiceName}:8008",
+          "mode": "SERVAPP",
+          "Timeout": 14400000,
+          "ThrottlePerMinute": 12000,
+          "AuthEnabled": false,
+          "AdminOnly": false,
+          "BlockCommonBots": false,
+          "BlockAPIAbuse": false,
+          "SmartShield": {
+            "Enabled": false
+          }
+        }
+      ]
+    },
+    "{ServiceName}-bootstrap-admin": {
+      "image": "matrixdotorg/synapse:v1.157.0",
+      "container_name": "{ServiceName}-bootstrap-admin",
+      "hostname": "{ServiceName}-bootstrap-admin",
+      "entrypoint": "/bin/sh -c",
+      "command": "printf${IFS}%s${IFS}IyEvYmluL3NoCnNldCAtZXUKCk1BUktFUj0vZGF0YS8uY29zbW9zLXN5bmFwc2UtYWRtaW4KUkVHSVNURVI9JHtTWU5BUFNFX1JFR0lTVEVSX1VTRVI6LXJlZ2lzdGVyX25ld19tYXRyaXhfdXNlcn0KU1lOQVBTRV9QT1JUPSR7U1lOQVBTRV9QT1JUOi04MDA4fQoKY2FzZSAiJHtBRE1JTl9VU0VSOi19IiBpbgogICcnfCpbIUEtWmEtejAtOS5fPS1dKikKICAgIGVjaG8gIkFETUlOX1VTRVIgbXVzdCBjb250YWluIG9ubHkgbGV0dGVycywgZGlnaXRzLCBkb3QsIHVuZGVyc2NvcmUsIGVxdWFscywgb3IgaHlwaGVuIiA+JjIKICAgIGV4aXQgNjQKICAgIDs7CmVzYWMKWyAtbiAiJHtBRE1JTl9QQVNTV09SRDotfSIgXSB8fCB7IGVjaG8gIkFETUlOX1BBU1NXT1JEIGlzIHJlcXVpcmVkIiA+JjI7IGV4aXQgNjQ7IH0KCmlmIFsgLWYgIiRNQVJLRVIiIF07IHRoZW4KICByZWNvcmRlZD0kKGNhdCAiJE1BUktFUiIpCiAgWyAiJHJlY29yZGVkIiA9ICIkQURNSU5fVVNFUiIgXSB8fCB7CiAgICBlY2hvICJBZG1pbmlzdHJhdG9yIGJvb3RzdHJhcCByZWZ1c2FsOiBwZXJzaXN0ZWQgYWRtaW4gJyRyZWNvcmRlZCcgZGlmZmVycyBmcm9tIHJlcXVlc3RlZCAnJEFETUlOX1VTRVInIiA+JjIKICAgIGV4aXQgNjUKICB9CiAgZWNobyAiQWRtaW5pc3RyYXRvciBAJEFETUlOX1VTRVI6JFNZTkFQU0VfU0VSVkVSX05BTUUgd2FzIGFscmVhZHkgYm9vdHN0cmFwcGVkIgogIGV4aXQgMApmaQoKYXR0ZW1wdD0wCnVudGlsIGN1cmwgLWZTcyAiaHR0cDovLyRTWU5BUFNFX0hPU1Q6JFNZTkFQU0VfUE9SVC9oZWFsdGgiID4vZGV2L251bGwgMj4mMTsgZG8KICBhdHRlbXB0PSQoKGF0dGVtcHQgKyAxKSkKICBbICIkYXR0ZW1wdCIgLWx0IDMwMCBdIHx8IHsgZWNobyAiU3luYXBzZSBkaWQgbm90IGJlY29tZSBoZWFsdGh5IiA+JjI7IGV4aXQgNzA7IH0KICBzbGVlcCAxCmRvbmUKCnNldCArZQpvdXRwdXQ9JCgKICAiJFJFR0lTVEVSIiBcCiAgICAtdSAiJEFETUlOX1VTRVIiIFwKICAgIC1wICIkQURNSU5fUEFTU1dPUkQiIFwKICAgIC1hIFwKICAgIC1jIC9kYXRhL2hvbWVzZXJ2ZXIueWFtbCBcCiAgICAiaHR0cDovLyRTWU5BUFNFX0hPU1Q6JFNZTkFQU0VfUE9SVCIgMj4mMQopCnN0YXR1cz0kPwpzZXQgLWUKcHJpbnRmICclc1xuJyAiJG91dHB1dCIKCmlmIFsgIiRzdGF0dXMiIC1lcSAwIF0gfHwgcHJpbnRmICclcycgIiRvdXRwdXQiIHwgZ3JlcCAtRXFpICdNX1VTRVJfSU5fVVNFfGFscmVhZHkgZXhpc3RzfGFscmVhZHkgdGFrZW4nOyB0aGVuCiAgcHJpbnRmICclc1xuJyAiJEFETUlOX1VTRVIiID4gIiRNQVJLRVIiCiAgY2htb2QgMDY0MCAiJE1BUktFUiIKICBlY2hvICJBZG1pbmlzdHJhdG9yIEAkQURNSU5fVVNFUjokU1lOQVBTRV9TRVJWRVJfTkFNRSBpcyByZWFkeSIKICBleGl0IDAKZmkKCmV4aXQgIiRzdGF0dXMiCg==|base64${IFS}-d|/bin/sh",
+      "depends_on": {
+        "{ServiceName}": {
+          "condition": "service_started"
+        }
+      },
+      "environment": [
+        "ADMIN_USER={Context.adminUser}",
+        "ADMIN_PASSWORD={Context.adminPassword}",
+        "SYNAPSE_SERVER_NAME={Hostnames.{StaticServiceName}.{StaticServiceName}.host}",
+        "SYNAPSE_HOST={ServiceName}",
+        "SYNAPSE_PORT=8008"
+      ],
+      "volumes": [
+        {
+          "source": "{ServiceName}-data",
+          "target": "/data",
+          "type": "volume"
+        }
+      ],
+      "networks": {
+        "{ServiceName}-database": {}
+      },
+      "labels": {
+        "cosmos-persistent-env": "ADMIN_USER, ADMIN_PASSWORD, SYNAPSE_SERVER_NAME, SYNAPSE_HOST, SYNAPSE_PORT",
+        "cosmos-icon": "https://azukaar.github.io/cosmos-servapps-official/servapps/Synapse/icon.svg",
+        "cosmos-stack": "{ServiceName}",
+        "cosmos-stack-main": "{ServiceName}"
+      }
+    }
+  },
+  "networks": {
+    "{ServiceName}-database": {
+      "internal": true
+    }
+  }
+}
