@@ -1,0 +1,235 @@
+{
+  "cosmos-installer": {
+    "form": [
+      {
+        "name": "ADMIN_USER",
+        "label": "Initial Matrix administrator username",
+        "initialValue": "admin",
+        "type": "text"
+      },
+      {
+        "name": "ADMIN_PASSWORD",
+        "label": "Initial Matrix administrator password",
+        "initialValue": "",
+        "type": "password"
+      },
+      {
+        "name": "REPORT_STATS",
+        "label": "Send anonymous usage statistics to the Synapse project? (yes/no)",
+        "initialValue": "no",
+        "type": "text"
+      }
+    ]
+  },
+  "minVersion": "0.17.0",
+  "services": {
+    "{ServiceName}-postgres": {
+      "image": "postgres:17.10-alpine3.23",
+      "container_name": "{ServiceName}-postgres",
+      "hostname": "{ServiceName}-postgres",
+      "restart": "unless-stopped",
+      "stop_grace_period": 30,
+      "environment": [
+        "POSTGRES_DB=synapse",
+        "POSTGRES_USER=synapse",
+        "POSTGRES_PASSWORD={Passwords.0}",
+        "POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C"
+      ],
+      "labels": {
+        "cosmos-stack": "{ServiceName}",
+        "cosmos-stack-main": "{ServiceName}",
+        "cosmos-icon": "https://azukaar.github.io/cosmos-servapps-official/servapps/Synapse/icon.svg",
+        "cosmos-persistent-env": "POSTGRES_DB,POSTGRES_USER,POSTGRES_PASSWORD,POSTGRES_INITDB_ARGS"
+      },
+      "networks": {
+        "{ServiceName}-backend": {}
+      },
+      "volumes": [
+        {
+          "source": "{ServiceName}-postgres-data",
+          "target": "/var/lib/postgresql/data",
+          "type": "volume"
+        }
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "pg_isready -U synapse -d synapse"
+        ],
+        "retries": 10
+      }
+    },
+    "{ServiceName}-generate": {
+      "image": "matrixdotorg/synapse:v1.156.0",
+      "container_name": "{ServiceName}-generate",
+      "restart": "on-failure",
+      "entrypoint": "/bin/sh -c",
+      "command": "test${IFS}-s${IFS}/data/homeserver.yaml||exec${IFS}/start.py${IFS}generate",
+      "environment": [
+        "SYNAPSE_SERVER_NAME={Hostnames.{StaticServiceName}.{StaticServiceName}.host}",
+        "SYNAPSE_REPORT_STATS={Context.REPORT_STATS}",
+        "SYNAPSE_CONFIG_DIR=/data",
+        "SYNAPSE_CONFIG_PATH=/data/homeserver.yaml",
+        "SYNAPSE_DATA_DIR=/data",
+        "UID=991",
+        "GID=991"
+      ],
+      "labels": {
+        "cosmos-stack": "{ServiceName}",
+        "cosmos-stack-main": "{ServiceName}",
+        "cosmos-icon": "https://azukaar.github.io/cosmos-servapps-official/servapps/Synapse/icon.svg"
+      },
+      "networks": {
+        "{ServiceName}-backend": {}
+      },
+      "volumes": [
+        {
+          "source": "{ServiceName}-synapse-data",
+          "target": "/data",
+          "type": "volume"
+        }
+      ]
+    },
+    "{ServiceName}-configure": {
+      "image": "mikefarah/yq:4.47.2",
+      "container_name": "{ServiceName}-configure",
+      "restart": "on-failure",
+      "entrypoint": "/bin/sh -c",
+      "command": "/usr/bin/yq${IFS}-e${IFS}.server_name==strenv(SERVER_NAME)${IFS}/data/homeserver.yaml&&/usr/bin/yq${IFS}-i${IFS}'.database={\"name\":\"psycopg2\",\"args\":{\"user\":\"synapse\",\"password\":strenv(POSTGRES_PASSWORD),\"database\":\"synapse\",\"host\":strenv(POSTGRES_HOST),\"port\":5432,\"cp_min\":5,\"cp_max\":10}}|.public_baseurl=strenv(PUBLIC_BASEURL)|.serve_server_wellknown=true|.enable_registration=false|.enable_registration_without_verification=false|.allow_public_rooms_without_auth=false|.allow_public_rooms_over_federation=false|.registration_shared_secret=strenv(REGISTRATION_SHARED_SECRET)|.macaroon_secret_key=strenv(MACAROON_SECRET_KEY)|.form_secret=strenv(FORM_SECRET)|.url_preview_enabled=false|.max_upload_size=\"100M\"|.listeners[0].port=8008|.listeners[0].tls=false|.listeners[0].x_forwarded=true|.listeners[0].bind_addresses=[\"0.0.0.0\"]'${IFS}/data/homeserver.yaml&&touch${IFS}/data/.cosmos-configured",
+      "user": "991:991",
+      "environment": [
+        "SERVER_NAME={Hostnames.{StaticServiceName}.{StaticServiceName}.host}",
+        "PUBLIC_BASEURL=https://{Hostnames.{StaticServiceName}.{StaticServiceName}.host}/",
+        "POSTGRES_HOST={ServiceName}-postgres",
+        "POSTGRES_PASSWORD={Passwords.0}",
+        "REGISTRATION_SHARED_SECRET={Passwords.1}",
+        "MACAROON_SECRET_KEY={Passwords.2}",
+        "FORM_SECRET={Passwords.3}"
+      ],
+      "labels": {
+        "cosmos-stack": "{ServiceName}",
+        "cosmos-stack-main": "{ServiceName}",
+        "cosmos-icon": "https://azukaar.github.io/cosmos-servapps-official/servapps/Synapse/icon.svg",
+        "cosmos-persistent-env": "SERVER_NAME,PUBLIC_BASEURL,POSTGRES_HOST,POSTGRES_PASSWORD,REGISTRATION_SHARED_SECRET,MACAROON_SECRET_KEY,FORM_SECRET"
+      },
+      "depends_on": {
+        "{ServiceName}-generate": {
+          "condition": "service_completed_successfully"
+        }
+      },
+      "networks": {
+        "{ServiceName}-backend": {}
+      },
+      "volumes": [
+        {
+          "source": "{ServiceName}-synapse-data",
+          "target": "/data",
+          "type": "volume"
+        }
+      ]
+    },
+    "{ServiceName}": {
+      "image": "matrixdotorg/synapse:v1.156.0",
+      "container_name": "{ServiceName}",
+      "hostname": "{ServiceName}",
+      "restart": "unless-stopped",
+      "stop_grace_period": 60,
+      "entrypoint": "/bin/sh -c",
+      "command": "test${IFS}-f${IFS}/data/.cosmos-configured&&python${IFS}-c${IFS}\"o=__import__('os');y=__import__('yaml');d=y.safe_load(open('/data/homeserver.yaml'));__import__('sys').exit(d['server_name']!=o.environ['SYNAPSE_SERVER_NAME'])\"&&exec${IFS}/start.py${IFS}run",
+      "environment": [
+        "SYNAPSE_SERVER_NAME={Hostnames.{StaticServiceName}.{StaticServiceName}.host}",
+        "SYNAPSE_CONFIG_DIR=/data",
+        "SYNAPSE_CONFIG_PATH=/data/homeserver.yaml",
+        "SYNAPSE_DATA_DIR=/data",
+        "UID=991",
+        "GID=991"
+      ],
+      "labels": {
+        "cosmos-stack": "{ServiceName}",
+        "cosmos-stack-main": "{ServiceName}",
+        "cosmos-icon": "https://azukaar.github.io/cosmos-servapps-official/servapps/Synapse/icon.svg",
+        "cosmos-network-name": "auto",
+        "cosmos-persistent-env": "SYNAPSE_SERVER_NAME,SYNAPSE_CONFIG_DIR,SYNAPSE_CONFIG_PATH,SYNAPSE_DATA_DIR,UID,GID"
+      },
+      "depends_on": {
+        "{ServiceName}-postgres": {
+          "condition": "service_healthy"
+        },
+        "{ServiceName}-configure": {
+          "condition": "service_completed_successfully"
+        }
+      },
+      "networks": {
+        "{ServiceName}-backend": {}
+      },
+      "volumes": [
+        {
+          "source": "{ServiceName}-synapse-data",
+          "target": "/data",
+          "type": "volume"
+        }
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8008/health').read()"
+        ],
+        "retries": 10
+      },
+      "routes": [
+        {
+          "name": "{ServiceName}",
+          "description": "Matrix client and federation endpoint",
+          "useHost": true,
+          "target": "http://{ServiceName}:8008",
+          "mode": "SERVAPP",
+          "Timeout": 600000,
+          "ThrottlePerMinute": 12000,
+          "BlockCommonBots": false,
+          "SmartShield": {
+            "Enabled": false
+          }
+        }
+      ]
+    },
+    "{ServiceName}-bootstrap-admin": {
+      "image": "matrixdotorg/synapse:v1.156.0",
+      "container_name": "{ServiceName}-bootstrap-admin",
+      "restart": "on-failure",
+      "entrypoint": "/bin/sh -c",
+      "command": "test${IFS}-f${IFS}/data/.cosmos-admin-created&&exit${IFS}0;register_new_matrix_user${IFS}-u${IFS}\"$ADMIN_USER\"${IFS}-p${IFS}\"$ADMIN_PASSWORD\"${IFS}-a${IFS}-c${IFS}/data/homeserver.yaml${IFS}http://{ServiceName}:8008&&touch${IFS}/data/.cosmos-admin-created&&exit${IFS}0;python${IFS}-c${IFS}\"o=__import__('os');j=__import__('json');u=__import__('urllib.request',fromlist=['Request']);d={'type':'m.login.password','identifier':{'type':'m.id.user','user':o.environ['ADMIN_USER']},'password':o.environ['ADMIN_PASSWORD']};r=u.Request('http://{ServiceName}:8008/_matrix/client/v3/login',data=j.dumps(d).encode(),headers={'Content-Type':'application/json'});u.urlopen(r).read()\"&&touch${IFS}/data/.cosmos-admin-created",
+      "environment": [
+        "ADMIN_USER={Context.ADMIN_USER}",
+        "ADMIN_PASSWORD={Context.ADMIN_PASSWORD}"
+      ],
+      "labels": {
+        "cosmos-stack": "{ServiceName}",
+        "cosmos-stack-main": "{ServiceName}",
+        "cosmos-icon": "https://azukaar.github.io/cosmos-servapps-official/servapps/Synapse/icon.svg",
+        "cosmos-persistent-env": "ADMIN_USER,ADMIN_PASSWORD"
+      },
+      "depends_on": {
+        "{ServiceName}": {
+          "condition": "service_healthy"
+        }
+      },
+      "networks": {
+        "{ServiceName}-backend": {}
+      },
+      "volumes": [
+        {
+          "source": "{ServiceName}-synapse-data",
+          "target": "/data",
+          "type": "volume"
+        }
+      ]
+    }
+  },
+  "networks": {
+    "{ServiceName}-backend": {
+      "internal": true
+    }
+  }
+}
