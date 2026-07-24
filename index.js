@@ -27,10 +27,8 @@ for (const file of servapps) {
     }
   }
 
-  const iconFile = ['png', 'svg', 'webp', 'jpg', 'jpeg']
-    .map(extension => `icon.${extension}`)
-    .find(icon => fs.existsSync(`./servapps/${file}/${icon}`)) || 'icon.png'
-  servapp.icon = `https://azukaar.github.io/cosmos-servapps-official/servapps/${file}/${iconFile}`
+  const iconExtension = ['png', 'svg', 'webp', 'jpg', 'jpeg'].find(extension => fs.existsSync(`./servapps/${file}/icon.${extension}`)) || 'png'
+  servapp.icon = `https://azukaar.github.io/cosmos-servapps-official/servapps/${file}/icon.${iconExtension}`
   //Common Format,used by most
   const YMLComposeSource =  `https://azukaar.github.io/cosmos-servapps-official/servapps/${file}/docker-compose.yml`;
   if(fs.existsSync(`./servapps/${file}/docker-compose.yml`)) {
