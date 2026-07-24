@@ -1,0 +1,6 @@
+# Synapse runtime state belongs in Cosmos-managed volumes, never in the marketplace tree.
+homeserver.yaml
+*.signing.key
+*.log.config
+media_store/
+uploads/
