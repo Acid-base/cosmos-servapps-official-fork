@@ -62,46 +62,6 @@
   },
   "minVersion": "0.22.29",
   "services": {
-    "{ServiceName}-postgres": {
-      "image": "postgres:17.10-alpine3.23",
-      "container_name": "{ServiceName}-postgres",
-      "hostname": "{ServiceName}-postgres",
-      "restart": "unless-stopped",
-      "stop_grace_period": 30,
-      "environment": [
-        "POSTGRES_DB=synapse",
-        "POSTGRES_USER=synapse",
-        "POSTGRES_PASSWORD={Passwords.0}",
-        "POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
-      ],
-      "healthcheck": {
-        "test": [
-          "CMD-SHELL",
-          "pg_isready -U synapse -d synapse"
-        ],
-        "interval": 5,
-        "timeout": 5,
-        "retries": 30,
-        "start_period": 10
-      },
-      "volumes": [
-        {
-          "source": "{ServiceName}-postgres-data",
-          "target": "/var/lib/postgresql/data",
-          "type": "volume"
-        }
-      ],
-      "networks": {
-        "{ServiceName}-database": {}
-      },
-      "labels": {
-        "cosmos-persistent-env": "POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_INITDB_ARGS",
-        "cosmos-auto-update": "true",
-        "cosmos-icon": "https://azukaar.github.io/cosmos-servapps-official/servapps/Synapse/icon.svg",
-        "cosmos-stack": "{ServiceName}",
-        "cosmos-stack-main": "{ServiceName}"
-      }
-    },
     "{ServiceName}": {
       "image": "matrixdotorg/synapse:v1.157.0",
       "container_name": "{ServiceName}",
@@ -181,6 +141,46 @@
           }
         }
       ]
+    },
+    "{ServiceName}-postgres": {
+      "image": "postgres:17.10-alpine3.23",
+      "container_name": "{ServiceName}-postgres",
+      "hostname": "{ServiceName}-postgres",
+      "restart": "unless-stopped",
+      "stop_grace_period": 30,
+      "environment": [
+        "POSTGRES_DB=synapse",
+        "POSTGRES_USER=synapse",
+        "POSTGRES_PASSWORD={Passwords.0}",
+        "POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "pg_isready -U synapse -d synapse"
+        ],
+        "interval": 5,
+        "timeout": 5,
+        "retries": 30,
+        "start_period": 10
+      },
+      "volumes": [
+        {
+          "source": "{ServiceName}-postgres-data",
+          "target": "/var/lib/postgresql/data",
+          "type": "volume"
+        }
+      ],
+      "networks": {
+        "{ServiceName}-database": {}
+      },
+      "labels": {
+        "cosmos-persistent-env": "POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_INITDB_ARGS",
+        "cosmos-auto-update": "true",
+        "cosmos-icon": "https://azukaar.github.io/cosmos-servapps-official/servapps/Synapse/icon.svg",
+        "cosmos-stack": "{ServiceName}",
+        "cosmos-stack-main": "{ServiceName}"
+      }
     },
     "{ServiceName}-bootstrap-admin": {
       "image": "matrixdotorg/synapse:v1.157.0",
